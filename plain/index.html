@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <link rel="stylesheet" href="style.css">
+        <title>Sticky Notes</title>
+    </head>
+    <body>
+        <div class="info">Click to add a new note</div>
+        <div id="wall"></div>
+
+        <script>
+        var wall = document.getElementById('wall');
+        var formFieldFocused = false;
+
+        var colors = [
+            ['green', 'white'],
+            ['red', 'white'],
+            ['yellow', 'black'],
+            ['blue', 'white'],
+            ['violet', 'white']
+        ];
+
+        wall.addEventListener('click', function(e) {
+            e = e || window.event;
+            if (event.target !== wall) {
+                return;
+            }
+
+            if (formFieldFocused === true) {
+                formFieldFocused = false;
+                return;
+            }
+
+            var noteElement = createNoteElement(e);
+            wall.appendChild(noteElement);
+        });
+
+        function createNoteElement(e) {
+            var randomColor = Math.floor(Math.random() * Math.floor(colors.length));
+            var noteElement = document.createElement('div');
+            noteElement.classList.add('note');
+            noteElement.style.top = e.clientY + 'px';
+            noteElement.style.left = e.clientX + 'px';
+            noteElement.style.background = colors[randomColor][0];
+            noteElement.style.color = colors[randomColor][1];
+
+            var colorContainer = createColorHeader(noteElement);
+            createHeader(noteElement, colorContainer);
+            createBody(noteElement);
+            return noteElement;
+        }
+
+        function createColorHeader(noteElement) {
+            var container = document.createElement('div');
+            container.classList.add('note__color');
+            container.classList.add('d-none');
+
+            for (var i = 0; i < colors.length; i++) {
+                var colorElement = document.createElement('div');
+                colorElement.style.background = colors[i][0];
+                colorElement.style.color = colors[i][1];
+                colorElement.addEventListener('click', function(e) {
+                    container.classList.add('d-none');
+                    noteElement.style.background = e.target.style.background;
+                    noteElement.style.color = e.target.style.color;
+                });
+                container.appendChild(colorElement);
+            }
+
+            noteElement.appendChild(container);
+
+            return container;
+        }
+
+        function createHeader(noteElement, colorContainer) {
+            var noteHeader = document.createElement('div');
+            noteHeader.classList.add('note__header');
+    
+            var titleContainer = document.createElement('div');
+            createTitle(titleContainer);
+            noteHeader.appendChild(titleContainer);
+            
+            var buttons = document.createElement('div');
+            buttons.classList.add('note__buttons')
+            createMoveBtn(buttons, noteElement);
+            createColorBtn(buttons, colorContainer);
+            createRemoveBtn(buttons, noteElement);
+            noteHeader.appendChild(buttons);
+
+            noteElement.appendChild(noteHeader);
+        }
+        
+        function createTitle(parentContainer) {
+            var titleElement = document.createElement('input');
+            titleElement.classList.add('note__title');
+            titleElement.placeholder = 'Title';
+            titleElement.classList.add('no-drag');
+            titleElement.addEventListener('focus', function() {
+                formFieldFocused = true;
+            });
+            parentContainer.appendChild(titleElement);
+        }
+
+        function createMoveBtn(parentContainer, noteElement) {
+            var btn = document.createElement('button');
+            btn.classList.add('button');
+            btn.classList.add('button--move');
+            btn.textContent = '<>';
+
+            dragElement(btn, noteElement);
+            parentContainer.appendChild(btn);
+        }
+
+        function createColorBtn(parentContainer, colorContainer) {
+            var btn = document.createElement('button');
+            btn.classList.add('button');
+            btn.classList.add('button--color');
+            btn.textContent = '...';
+
+            btn.addEventListener('click', function(e) {
+                if (e.target !== btn) {
+                    return;
+                }
+                
+                if (colorContainer.classList.contains('d-none')) {
+                    colorContainer.classList.remove('d-none');
+                } else {
+                    colorContainer.classList.add('d-none');
+                }
+            });
+
+            parentContainer.appendChild(btn);
+        }
+
+        function createRemoveBtn(parentContainer, noteElement) {
+            var btn = document.createElement('button');
+            btn.classList.add('button');
+            btn.classList.add('button--delete');
+            btn.textContent = 'X';
+
+            btn.addEventListener('click', function(e) {
+                if (e.target !== btn) {
+                    return;
+                }
+
+                noteElement.remove();
+            });
+
+            parentContainer.appendChild(btn);
+        }
+
+        function createBody(noteElement) {
+            var body = document.createElement('div');
+            body.classList.add('note__body');
+            
+            var content = document.createElement('textarea');
+            content.classList.add('note__content');
+            content.placeholder = 'Your notice here';
+            content.rows = 1;
+            content.addEventListener('focus', function() {
+                formFieldFocused = true;
+            });
+            content.addEventListener('keydown', function() {
+                var el = this;
+                setTimeout(function(){
+                    el.style.height = el.scrollHeight + 'px';
+                }, 0);
+            });
+
+            body.appendChild(content);
+            noteElement.appendChild(body);
+        }
+
+        function dragElement(dragElement, noteElement) {
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            dragElement.addEventListener('mousedown', dragMouseDown);
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                noteElement.classList.add('note--zoom');
+                // get the mouse cursor position at startup:
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.addEventListener('mouseup', closeDragElement);
+                document.addEventListener('mousemove', elementDrag);
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // calculate the new cursor position:
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // set the element's new position:
+                noteElement.style.top = (noteElement.offsetTop - pos2) + 'px';
+                noteElement.style.left = (noteElement.offsetLeft - pos1) + 'px';
+            }
+
+            function closeDragElement() {
+                /* stop moving when mouse button is released:*/
+                noteElement.classList.remove('note--zoom');
+                document.removeEventListener('mouseup', closeDragElement);
+                document.removeEventListener('mousemove', elementDrag);
+            }
+        }
+        </script>
+    </body>
+</html>
